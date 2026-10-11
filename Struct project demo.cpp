@@ -75,8 +75,7 @@ int main() {
 
     nhapSoLuongXe(ngaTu);
     tinhMatDoXe(ngaTu);
-
-    // In mat do kem theo trang thai xe uu tien tren cung mot dong
+	
     cout << "\n--- MAT DO VA XE UU TIEN CAC LAN ---\n";
     for (int i = 0; i < 4; i++) {
         cout << "Huong " << tenHuong[i] << ": " 
