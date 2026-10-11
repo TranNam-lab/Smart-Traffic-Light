@@ -38,4 +38,59 @@ struct intersection {			//tong quan nga 4
 	Lane lanes[4];				//co 4 lane
 	TrafficLight lights[4];		//co 4 cot den
 };
+// 1. Ham nhap so luong xe va trang thai xe uu tien
+void nhapSoLuongXe(intersection &ngaTu) {
+    string tenHuong[4] = {"Dong", "Tay", "Nam", "Bac"};
+    
+    for (int i = 0; i < 4; i++) {
+        cout << "Nhap so xe huong " << tenHuong[i] << ": ";
+        cin >> ngaTu.lanes[i].vehicleCount;
+
+        cout << "Co xe uu tien khong (1: Co, 0: Khong): ";
+        cin >> ngaTu.lanes[i].priorityVehicle;
+    }
+}
+
+// 2. Ham tinh mat do xe (gia su suc chua moi lan la 100 xe)
+void tinhMatDoXe(intersection &ngaTu) {
+    for (int i = 0; i < 4; i++) {
+        ngaTu.lanes[i].density = (ngaTu.lanes[i].vehicleCount / 100.0) * 100.0;
+    }
+}
+
+// 3. Ham tim lan co mat do cao nhat
+int timLanMatDoLonNhat(intersection ngaTu) {
+    int viTriMax = 0;
+    for (int i = 1; i < 4; i++) {
+        if (ngaTu.lanes[i].density > ngaTu.lanes[viTriMax].density) {
+            viTriMax = i;
+        }
+    }
+    return viTriMax;
+}
+
+int main() {
+    intersection ngaTu;
+    string tenHuong[4] = {"Dong", "Tay", "Nam", "Bac"};
+
+    nhapSoLuongXe(ngaTu);
+    tinhMatDoXe(ngaTu);
+
+    // In mat do kem theo trang thai xe uu tien tren cung mot dong
+    cout << "\n--- MAT DO VA XE UU TIEN CAC LAN ---\n";
+    for (int i = 0; i < 4; i++) {
+        cout << "Huong " << tenHuong[i] << ": " 
+             << ngaTu.lanes[i].density << "%"
+             << " - Xe uu tien: " 
+             << (ngaTu.lanes[i].priorityVehicle ? "CO" : "khong") << "\n";
+    }
+
+    // In lan co mat do lon nhat
+    int maxIdx = timLanMatDoLonNhat(ngaTu);
+    cout << "\n=> Lan dong nhat la huong: " << tenHuong[maxIdx] 
+         << " (" << ngaTu.lanes[maxIdx].density << "%)\n";
+
+    return 0;
+}
+
 
