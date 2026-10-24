@@ -1,0 +1,347 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mô phỏng đèn ngã tư</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: bản đồ ngã tư + điều khiển bên trái; nhập liệu, kết quả tính và console C++ bên phải. */
+:root{
+  --bg:#edf0ec; --surface:#ffffff; --ink:#1b231f; --muted:#59645d; --line:#d2d9d3;
+  --asphalt:#3b413d; --grass:#d9e5d3; --mark:#f1f3ef; --accent:#1c6e5a; --accent-ink:#ffffff;
+  --car:#3f7ad8; --pv:#d6363b; --go:#2c9a48; --stop:#d83a3a; --warn:#eab308; --off:#8a938c;
+  --console-bg:#16201b; --console-ink:#cfe7d6; --console-dim:#7d9a87;
+  --font-body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101512; --surface:#18201b; --ink:#e6ece7; --muted:#95a39a; --line:#2a352e;
+  --asphalt:#2d332f; --grass:#1a2a1d; --mark:#c3cac4; --accent:#4cc3a3; --accent-ink:#0c1a15;
+  --car:#68a2ff; --pv:#ff5d62; --go:#3fcf62; --stop:#ff5555; --warn:#f2c230; --off:#6f7a72;
+  --console-bg:#0b100d; --console-ink:#cfe7d6; --console-dim:#6f8c78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101512; --surface:#18201b; --ink:#e6ece7; --muted:#95a39a; --line:#2a352e;
+  --asphalt:#2d332f; --grass:#1a2a1d; --mark:#c3cac4; --accent:#4cc3a3; --accent-ink:#0c1a15;
+  --car:#68a2ff; --pv:#ff5d62; --go:#3fcf62; --stop:#ff5555; --warn:#f2c230; --off:#6f7a72;
+  --console-bg:#0b100d; --console-ink:#cfe7d6; --console-dim:#6f8c78; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--font-body);
+  padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:1.6rem;line-height:1.2;margin:0 0 6px;font-weight:700;text-wrap:balance}
+h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);max-width:68ch}
+.lead code,.mono{font-family:var(--font-mono);font-size:.9em}
+.shell{max-width:1180px;margin:0 auto}
+.cols{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;margin-top:18px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+
+svg#map{display:block;width:100%;height:auto;border-radius:6px}
+svg text{font-family:var(--font-body);fill:var(--ink)}
+.s-grass{fill:var(--grass)} .s-road{fill:var(--asphalt)}
+.s-mark{stroke:var(--mark);stroke-width:2;fill:none}.s-dash{stroke-dasharray:10 8;opacity:.65}.s-stopl{stroke-width:4}
+
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+button,select,input[type=number]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 12px}
+button{cursor:pointer;font-weight:600}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar label{color:var(--muted);display:flex;gap:6px;align-items:center}
+
+.status{margin-top:12px;padding:10px 12px;border-radius:6px;background:var(--bg);border:1px solid var(--line);min-height:3.2em}
+.status b{font-weight:600}
+.ask{margin-top:12px;padding:12px;border-radius:6px;border:2px solid var(--pv)}
+.ask .bar{margin-top:8px}
+.dir{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
+.dir>div{flex:1 1 200px;min-width:0;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.dir .nm{font-size:.8rem;color:var(--muted)}
+.dir .val{font-weight:600}
+
+.lanes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.lanes{grid-template-columns:minmax(0,1fr)}}
+.lane{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.lane .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lane input[type=number]{width:100%}
+.lane select{width:100%}
+.lane .chk{display:flex;gap:8px;align-items:center}
+.chip{padding:1px 10px;border-radius:99px;font-size:.78rem;font-weight:700;color:#fff;white-space:nowrap}
+.c-g{background:#2a8f43}.c-y{background:#e0a800;color:#1b231f}.c-r{background:#cf3434}.c-off{background:#76807a}
+.meter{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--car);transition:width .2s}
+
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:.78rem}
+.hl{font-weight:700;color:var(--accent)}
+.facts{display:flex;flex-direction:column;gap:4px;margin-top:10px;font-size:.92rem}
+
+#con{margin:0;background:var(--console-bg);color:var(--console-ink);font:12.5px/1.5 var(--font-mono);border-radius:6px;padding:10px 12px;height:280px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+#con .dim{color:var(--console-dim)}
+.note{color:var(--muted);font-size:.85rem;margin-top:8px}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+<div class="shell">
+  <h1>Mô phỏng đèn ngã tư</h1>
+  <p class="lead">Chạy lại đúng logic của <code>mo_phong_giao_thong_queue.cpp</code>: nhập số xe và xe ưu tiên cho 4 làn, tính mật độ và điểm ưu tiên, chọn hướng xanh đầu tiên rồi chạy đèn Đông–Tây / Nam–Bắc. Khung console bên phải in ra từng dòng giống chương trình C++.</p>
+
+  <div class="cols">
+    <div class="stack">
+      <section class="panel" aria-label="Ngã tư">
+        <svg id="map" viewBox="0 0 520 520" role="img" aria-label="Sơ đồ ngã tư bốn làn với đèn và xe chờ">
+          <rect class="s-grass" width="520" height="520"/>
+          <rect class="s-road" x="0" y="220" width="520" height="80"/>
+          <rect class="s-road" x="220" y="0" width="80" height="520"/>
+          <path class="s-mark s-dash" d="M0 260H220M300 260H520M260 0V220M260 300V520"/>
+          <path class="s-mark s-stopl" d="M300 222V258M220 262V298M222 220H258M262 300H298"/>
+          <g id="cars"></g><g id="lights"></g><g id="labels"></g>
+        </svg>
+        <div class="bar">
+          <button id="go" class="primary" type="button">Bắt đầu chạy đèn</button>
+          <button id="pp" type="button" hidden>Tạm dừng</button>
+          <button id="rs" type="button" hidden>Nhập lại</button>
+          <label for="sp">Tốc độ
+            <select id="sp"><option value="1000">×1 (1 giây thật)</option><option value="250">×4</option><option value="100">×10</option></select>
+          </label>
+        </div>
+        <div class="status" id="status" aria-live="polite"></div>
+        <div class="ask" id="ask" hidden>
+          <div id="askt"></div>
+          <div class="bar">
+            <button id="a0" type="button">0 – Chưa</button>
+            <button id="a1" type="button" class="primary">1 – Rồi</button>
+          </div>
+          <p class="note">Phím tắt: bấm 0 hoặc 1. Trả lời 0 thì chương trình chờ 1 giây rồi hỏi lại.</p>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Console">
+        <h2>Console (đầu ra của C++)</h2>
+        <pre id="con" tabindex="0" aria-label="Đầu ra giả lập của chương trình C++"></pre>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="panel" aria-label="Nhập liệu">
+        <h2>Bước 1 · nhapSoLuongXe</h2>
+        <div class="lanes" id="lanes"></div>
+        <p class="note">Mật độ tính theo sức chứa quy ước 100 xe mỗi làn: <span class="mono">density = vehicleCount / 100 × 100</span>.</p>
+      </section>
+
+      <section class="panel" aria-label="Kết quả tính">
+        <h2>Bước 2 · mật độ và độ ưu tiên</h2>
+        <div class="tbl"><table>
+          <thead><tr><th>Làn</th><th>Số xe</th><th>Mật độ</th><th>Xe ưu tiên</th><th>Điểm</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <div class="facts" id="facts"></div>
+      </section>
+
+      <section class="panel" aria-label="Quy tắc">
+        <h2>Thời gian đèn</h2>
+        <div class="dir" id="dir"></div>
+        <p class="note" id="rule"></p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Hằng số (giống file C++) ----------
+var XANH_MAC_DINH=30, XANH_NHIEU=50, XANH_IT=15, VANG=3, BAO_TRUOC=5;
+var TEN=["Đông","Tây","Nam","Bắc"], TEN_C=["Dong","Tay","Nam","Bac"];
+var HD=["Đông–Tây","Nam–Bắc"], HD_C=["Dong-Tay","Nam-Bac"];
+var LOAI=["Xe cận vệ (+2)","Đoàn xe tang (+3)","Xe cứu thương (+4)","Xe quân sự/công an, còi hú (+5)","Xe cứu hỏa (+6)"];
+var DIEM=[2,3,4,5,6];                         // layDiemUuTien(loaiXe 1..5)
+
+// ---------- Dữ liệu ----------
+var L=[{n:35,pv:false,lo:2},{n:30,pv:false,lo:2},{n:10,pv:false,lo:2},{n:5,pv:false,lo:2}];
+var started=false, paused=false, timer=null, S={}, lines=[];
+var $=function(id){return document.getElementById(id)};
+
+// ---------- Các hàm tính (giống C++) ----------
+function C(){                                  // tinhMatDoXe + tinhDoUuTien
+  var r=[],i;
+  for(i=0;i<4;i++){var hv=L[i].pv?DIEM[L[i].lo]:0;r.push({den:L[i].n,hv:hv,cur:hv});}
+  var dT=r[0].den+r[1].den, dB=r[2].den+r[3].den;
+  if(dT>dB*1.6){r[0].cur++;r[1].cur++;}
+  else if(dB>dT*1.6){r[2].cur++;r[3].cur++;}
+  return r;
+}
+function maxBy(r,key){var m=0;for(var i=1;i<4;i++)if(r[i][key]>r[m][key])m=i;return m}  // timLanMatDoLonNhat / timLanUuTienNhat
+function mdH(h){return L[2*h].n+L[2*h+1].n}                                              // matDoHuongDen
+function coXeUT(h){return L[2*h].pv||L[2*h+1].pv}                                        // coXeUuTien
+function xanh(h){var a=mdH(h),b=mdH(1-h);return a>b*1.6?XANH_NHIEU:(b>a*1.6?XANH_IT:XANH_MAC_DINH)}  // tinhThoiGianXanh
+function tenMau(m){return m===0?"XANH":(m===2?"VANG":"DO")}
+
+// ---------- Console ----------
+function out(s,dim){lines.push(dim?'<span class="dim">'+s+'</span>':s);if(lines.length>400)lines.shift()}
+function flushCon(){var c=$("con");c.innerHTML=lines.join("\n");c.scrollTop=c.scrollHeight}
+
+// ---------- chayDen: một vòng while(true) chia thành iterate() / answer() / tick() ----------
+function iterate(){
+  var g=S.g,d=1-g;
+  if(S.coXe[g]&&S.mau===0){                                   // (a) giữ xanh cho xe ưu tiên
+    out(HD_C[g]+": XANH (giu den cho xe uu tien)  |  "+HD_C[d]+": DO");
+    out("Xe uu tien da qua het nga tu chua? (1: Roi, 0: Chua): ",true);
+    S.mode="hold";S.asking=true;return;
+  }
+  proceed();
+}
+function proceed(){
+  var g=S.g,d=1-g;
+  if(S.coXe[d]){                                              // (b) xe ưu tiên ở hướng đang đỏ: rút xuống 5s
+    var gh=(S.mau===0)?(BAO_TRUOC-VANG):BAO_TRUOC;
+    if(S.t>gh)S.t=gh;
+  }
+  var tDo=S.t+(S.mau===0?VANG:0);
+  S.mode="run";
+  out(HD_C[g]+": "+tenMau(S.mau)+" "+S.t+"s  |  "+HD_C[d]+": DO "+tDo+"s");
+}
+function answer(v){
+  if(!started||!S.asking)return;
+  S.asking=false;
+  out("> "+v,true);
+  if(v===1){
+    S.coXe[S.g]=false;
+    out("-> Xe uu tien da qua. Den giao thong tiep tuc chay binh thuong!");
+    out("");
+    proceed();
+  }else{S.holdWait=true}                                      // doi1giay(); continue;
+  render();
+}
+function tick(){
+  if(!started||paused||S.asking)return;
+  if(S.holdWait){S.holdWait=false;iterate();render();return}
+  S.t--;                                                      // đếm ngược, chuyển trạng thái
+  if(S.t<=0){
+    if(S.mau===0){S.mau=2;S.t=VANG}
+    else{S.g=1-S.g;S.mau=0;S.t=xanh(S.g)}
+  }
+  iterate();render();
+}
+
+// ---------- main() ----------
+function start(){
+  var r=C(),i;
+  lines=[];
+  out("--- MAT DO VA XE UU TIEN CAC LAN ---");
+  for(i=0;i<4;i++)out("Huong "+TEN_C[i]+": "+r[i].den+"% - Xe uu tien: "+(L[i].pv?"CO":"khong"));
+  var mx=maxBy(r,"den");
+  out("");out("=> Lan dong nhat la huong: "+TEN_C[mx]+" ("+r[mx].den+"%)");
+  out("");out("--- MUC DO UU TIEN CAC LAN ---");
+  for(i=0;i<4;i++)out("Huong "+TEN_C[i]+": uu tien = "+r[i].cur);
+  var lu=maxBy(r,"cur");
+  out("");out("=> LAN CO MUC DO UU TIEN LON NHAT LA HUONG: "+TEN_C[lu]+" (Diem uu tien = "+r[lu].cur+")");
+  out("");
+  var h=lu<2?0:1;
+  out("Xanh: "+XANH_MAC_DINH+"s (hoac "+XANH_NHIEU+"s/"+XANH_IT+"s neu chenh mat do > 60%), vang: "+VANG+"s");
+  out("");
+  started=true;paused=false;
+  S={g:h,mau:0,t:xanh(h),mode:"run",asking:false,holdWait:false,coXe:[coXeUT(0),coXeUT(1)]};
+  iterate();
+  $("go").hidden=true;$("pp").hidden=false;$("rs").hidden=false;$("pp").textContent="Tạm dừng";
+  render();
+}
+function reset(){started=false;paused=false;S={};lines=[];$("go").hidden=false;$("pp").hidden=true;$("rs").hidden=true;render()}
+
+// ---------- Giao diện ----------
+var COL={g:"var(--go)",y:"var(--warn)",r:"var(--stop)",off:"var(--off)"};
+var LP=[[322,198],[198,322],[322,322],[198,198]];          // vị trí đèn từng làn
+var TY=[-24,34,34,-24];
+var LB=[[512,212,"end"],[8,318,"start"],[306,512,"start"],[214,16,"end"]];
+function carPos(i,j){
+  if(i===0)return[306+j*18,235.5,14,9];
+  if(i===1)return[204-j*18,275.5,14,9];
+  if(i===2)return[275.5,306+j*18,9,14];
+  return[235.5,204-j*18,9,14];
+}
+function lightOf(i){
+  if(!started)return{c:"off",txt:"CHƯA CHẠY",t:"–"};
+  var h=i<2?0:1,hold=S.mode==="hold";
+  if(h===S.g)return{c:S.mau===0?"g":"y",txt:S.mau===0?"XANH":"VÀNG",t:hold?"⏸":S.t};
+  return{c:"r",txt:"ĐỎ",t:hold?"⏸":S.t+(S.mau===0?VANG:0)};
+}
+function buildLanes(){
+  var opts=LOAI.map(function(x,k){return'<option value="'+k+'">'+x+'</option>'}).join("");
+  $("lanes").innerHTML=[0,1,2,3].map(function(i){
+    return'<div class="lane"><div class="top"><b>Làn '+TEN[i]+'</b><span class="chip c-off" id="lt'+i+'">–</span></div>'+
+    '<label for="n'+i+'" class="note" style="margin:0">Số xe (0–100)</label>'+
+    '<input type="number" id="n'+i+'" min="0" max="100" value="'+L[i].n+'">'+
+    '<div class="meter"><i id="m'+i+'"></i></div>'+
+    '<label class="chk" for="pv'+i+'"><input type="checkbox" id="pv'+i+'"> Có xe ưu tiên</label>'+
+    '<select id="lo'+i+'" aria-label="Loại xe ưu tiên làn '+TEN[i]+'">'+opts+'</select></div>';
+  }).join("");
+  [0,1,2,3].forEach(function(i){
+    $("lo"+i).value=L[i].lo;
+    $("n"+i).oninput=function(e){L[i].n=Math.max(0,Math.min(100,Math.floor(+e.target.value)||0));render()};
+    $("pv"+i).onchange=function(e){L[i].pv=e.target.checked;render()};
+    $("lo"+i).onchange=function(e){L[i].lo=+e.target.value;render()};
+  });
+}
+function render(){
+  var r=C(),i,j,cars="",lights="",labels="";
+  for(i=0;i<4;i++){
+    var n=L[i].n,k=n>0?Math.min(10,Math.max(1,Math.ceil(n/10))):0,lt=lightOf(i);
+    for(j=0;j<k;j++){
+      var p=carPos(i,j),pri=(j===0&&L[i].pv);
+      cars+='<rect x="'+p[0]+'" y="'+p[1]+'" width="'+p[2]+'" height="'+p[3]+'" rx="2" fill="'+(pri?'var(--pv)':'var(--car)')+'"'+(pri?' stroke="#fff" stroke-width="1.5"':'')+'/>';
+    }
+    var q=LP[i];
+    lights+='<circle cx="'+q[0]+'" cy="'+q[1]+'" r="18" fill="'+COL[lt.c]+'" stroke="#0007" stroke-width="2"/>'+
+      '<text x="'+q[0]+'" y="'+(q[1]+5)+'" text-anchor="middle" font-size="14" font-weight="700" style="fill:'+(lt.c==="y"?"#1b231f":"#fff")+'">'+lt.t+'</text>'+
+      '<text x="'+(q[0]<260?q[0]+18:q[0]-18)+'" y="'+(q[1]+TY[i])+'" text-anchor="'+(q[0]<260?'end':'start')+'" font-size="12">Đèn '+TEN[i]+'</text>';
+    var b=LB[i];
+    labels+='<text x="'+b[0]+'" y="'+b[1]+'" text-anchor="'+b[2]+'" font-size="13" font-weight="600">'+TEN[i]+': '+n+' xe'+(L[i].pv?' (ưu tiên)':'')+'</text>';
+    $("lt"+i).className="chip c-"+lt.c;$("lt"+i).textContent=lt.txt;
+    $("m"+i).style.width=Math.min(100,n)+"%";
+    $("n"+i).disabled=started;$("pv"+i).disabled=started;$("pv"+i).checked=L[i].pv;$("lo"+i).disabled=started||!L[i].pv;
+  }
+  $("cars").innerHTML=cars;$("lights").innerHTML=lights;$("labels").innerHTML=labels;
+
+  var mx=maxBy(r,"den"),lu=maxBy(r,"cur"),h=lu<2?0:1,rows="";
+  for(i=0;i<4;i++)rows+="<tr><td>"+TEN[i]+"</td><td>"+L[i].n+"</td><td>"+r[i].den+"%</td><td>"+(L[i].pv?"CÓ (+"+r[i].hv+")":"không")+"</td><td"+(i===lu?' class="hl"':'')+">"+r[i].cur+"</td></tr>";
+  $("rows").innerHTML=rows;
+  $("facts").innerHTML=
+    "<div>Làn đông nhất: <b>"+TEN[mx]+"</b> ("+r[mx].den+"%)</div>"+
+    "<div>Làn có điểm ưu tiên lớn nhất: <b>"+TEN[lu]+"</b> (điểm "+r[lu].cur+")</div>"+
+    "<div>Hướng được xanh đầu tiên: <b>"+HD[h]+"</b></div>";
+  $("dir").innerHTML=[0,1].map(function(x){
+    return'<div><div class="nm">'+HD[x]+'</div><div class="val">Xanh '+xanh(x)+'s · tổng mật độ '+mdH(x)+'%</div><div class="nm">'+(coXeUT(x)?'Có xe ưu tiên':'Không có xe ưu tiên')+'</div></div>';
+  }).join("");
+  $("rule").textContent="Vàng "+VANG+"s. Hướng đông hơn hướng kia trên 60% được xanh "+XANH_NHIEU+"s, hướng vắng hơn được "+XANH_IT+"s, còn lại "+XANH_MAC_DINH+"s. Hướng đang đỏ có xe ưu tiên thì đếm ngược rút còn "+BAO_TRUOC+"s.";
+
+  var bn="Nhập số xe và xe ưu tiên cho 4 làn, rồi bấm “Bắt đầu chạy đèn”.";
+  if(started){
+    var g=S.g,d=1-g;
+    bn=S.mode==="hold"
+      ?"<b>"+HD[g]+": XANH (giữ đèn cho xe ưu tiên)</b>, "+HD[d]+": ĐỎ"
+      :"<b>"+HD[g]+": "+(S.mau===0?"XANH ":"VÀNG ")+S.t+"s</b>, "+HD[d]+": ĐỎ "+(S.t+(S.mau===0?VANG:0))+"s";
+    if(paused)bn+=" · đang tạm dừng";
+    $("ask").hidden=!S.asking;
+    if(S.asking)$("askt").innerHTML="Xe ưu tiên đã qua hết ngã tư chưa? (hướng "+HD[g]+")";
+  }else $("ask").hidden=true;
+  $("status").innerHTML=bn;
+  flushCon();
+}
+
+buildLanes();
+$("go").onclick=start;
+$("rs").onclick=reset;
+$("pp").onclick=function(){paused=!paused;this.textContent=paused?"Tiếp tục":"Tạm dừng";render()};
+$("a0").onclick=function(){answer(0)};
+$("a1").onclick=function(){answer(1)};
+$("sp").onchange=function(){clearInterval(timer);timer=setInterval(tick,+this.value)};
+document.addEventListener("keydown",function(e){
+  if(!started||!S.asking)return;
+  var t=e.target&&e.target.tagName;if(t==="INPUT"||t==="SELECT")return;
+  if(e.key==="0")answer(0);else if(e.key==="1")answer(1);
+});
+render();
+timer=setInterval(tick,1000);
+</script>
+
+</body></html>
