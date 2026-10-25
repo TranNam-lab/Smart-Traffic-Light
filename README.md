@@ -1,7 +1,8 @@
 # Smart-Traffic-Light
 Smart traffic light using C++
 
-Dự án đèn giao thông thông minh tại ngã tư sử dụng C++ gồm mã nguồn DU_AN_DEN_GIAO_THONG_FINAL.cpp và web mô phỏng thuật toán là DEN_GIAO_THONG_THONG_MINH.html chỉ cần tải web mô phỏng về và mở trong trình duyệt để xem dự án.
+Dự án đèn giao thông thông minh tại ngã tư sử dụng C++ gồm mã nguồn DU_AN_DEN_GIAO_THONG_FINAL.cpp và web mô phỏng thuật toán là
+DEN_GIAO_THONG_THONG_MINH.html chỉ cần tải web mô phỏng về và mở trong trình duyệt để xem dự án.
 
 Về cơ bản dự án sẽ hoạt động như sau: 
 1.Cập nhật số lượng xe tại từng làn, có 4 làn là đông-tây-nam-bắc tương ứng với 4 đèn giao thông tại 4 làn.
